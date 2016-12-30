@@ -1,0 +1,27 @@
+{
+  "name": "poll-observer",
+  "version": "1.0.0",
+  "description": "observe poll loops",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cvazac/poll-observer.git"
+  },
+  "keywords": [
+    "xhr",
+    "XMLHttpRequest",
+    "async",
+    "poll",
+    "ajax",
+    "callback"
+  ],
+  "author": "Charles Vazac <cvazac@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/cvazac/poll-observer/issues"
+  },
+  "homepage": "https://github.com/cvazac/poll-observer#readme"
+}
