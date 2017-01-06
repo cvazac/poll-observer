@@ -1,2 +1,2 @@
 require('./async-watcher/XMLHttpRequest')
-//require('./async-watcher/setTimeout')
+require('./async-watcher/setTimeout')

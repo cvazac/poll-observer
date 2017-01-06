@@ -1,5 +1,5 @@
 
-var start, stop, AsyncWatcher
+var start, stop
 ;(function() {
   function PollObserver(types) {
     this.schedulerWatch = AsyncWatchers.on(types).schedule(function(ctx, type) {
@@ -70,5 +70,4 @@ var start, stop, AsyncWatcher
 module.exports = {
   start: start,
   stop: stop,
-  AsyncWatcher: AsyncWatcher, // TODO don't export this
 }
