@@ -7,35 +7,63 @@ test('setTimeout', function(t) {
   const longDelay = 100, shortDelay = 10, orderAsserter = OrderAsserter.init(t)
 
   t.ok(isNative(setTimeout))
-  const asyncWatcher = AsyncWatcher.init().register('setTimeout', function (ctx, delay) {
-    orderAsserter.assert([[1, delay === longDelay], [3, delay === shortDelay]])
-    ctx.delay = delay
-  }).before('setTimeout', function (ctx) {
-    orderAsserter.assert([[5, ctx.delay === shortDelay], [8, ctx.delay === longDelay]])
-  }).after('setTimeout', function (ctx) {
-    orderAsserter.assert([[7, ctx.delay === shortDelay], [10, ctx.delay === longDelay]])
-  })
+
+  const asyncWatchers = []
+  let count = 0
+  for (var i = 0; i < 3; i++) {
+    asyncWatchers.push(AsyncWatcher.init().register('setTimeout', function(ctx, delay) {
+      t.ok(Object.keys(ctx).length === 0)
+      orderAsserter.assert([
+        [1, delay === longDelay],
+        [2, delay === longDelay],
+        [3, delay === longDelay],
+        [5, delay === shortDelay],
+        [6, delay === shortDelay],
+        [7, delay === shortDelay],
+      ])
+      ctx.delay = delay
+    }).before('setTimeout', function(ctx) {
+      orderAsserter.assert([
+        [9, ctx.delay === shortDelay],
+        [10, ctx.delay === shortDelay],
+        [11, ctx.delay === shortDelay],
+        [16, ctx.delay === longDelay],
+        [17, ctx.delay === longDelay],
+        [18, ctx.delay === longDelay],
+      ])
+    }).after('setTimeout', function(ctx) {
+      orderAsserter.assert([
+        [13, ctx.delay === shortDelay],
+        [14, ctx.delay === shortDelay],
+        [15, ctx.delay === shortDelay],
+        [20, ctx.delay === longDelay],
+        [21, ctx.delay === longDelay],
+        [22, ctx.delay === longDelay],
+      ])
+
+      if (++count === 6) {
+        orderAsserter.assert(23)
+        asyncWatchers.forEach(function(asyncWatcher) {
+          t.notOk(isNative(setTimeout))
+          asyncWatcher.destroy()
+        })
+        t.ok(isNative(setTimeout))
+        t.end()
+      }
+
+    }))
+  }
+
   t.notOk(isNative(setTimeout))
 
   orderAsserter.assert(0)
-  setTimeout(function () {
-    orderAsserter.assert(9, arguments.length === 0)
-    shutdown()
+  setTimeout(function() {
+    orderAsserter.assert(19, arguments.length === 0)
   }, longDelay)
-  orderAsserter.assert(2)
-  setTimeout(function () {
-    orderAsserter.assert(6, arguments.length === 0)
-  }, shortDelay)
   orderAsserter.assert(4)
+  setTimeout(function() {
+    orderAsserter.assert(12, arguments.length === 0)
+  }, shortDelay)
+  orderAsserter.assert(8)
 
-  function shutdown() {
-    const otherAsyncWatcher = AsyncWatcher.init().register('setTimeout', function (ctx, delay) {
-    })
-    t.notOk(isNative(setTimeout))
-    otherAsyncWatcher.destroy()
-    t.notOk(isNative(setTimeout))
-    asyncWatcher.destroy()
-    t.ok(isNative(setTimeout))
-    t.end()
-  }
 })

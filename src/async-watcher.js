@@ -1,6 +1,7 @@
 var init, types
 (function() {
-  var index = 0, watchers = {}, natives = {}
+  var key = 0, watchers = {}, natives = {}
+
   init = function() {
     return new AsyncWatcher()
   }
@@ -11,44 +12,34 @@ var init, types
   types.all = Object.keys(types)
 
   function AsyncWatcher() {
-    var register, before, after, ownIndex = index++
+    var ownKey = key++
 
-    function maybeInstrument(type) {
+    function maybeInstrument(type, hook, callback) {
       watchers[type] = watchers[type] || {}
       if (Object.keys(watchers[type]).length === 0) {
-        console.info('instrument', type)
         instrument[type] && instrument[type]()
       }
-      watchers[type][ownIndex] = true
+      watchers[type][ownKey] = watchers[type][ownKey] || {}
+      watchers[type][ownKey][hook] = callback
     }
 
     this.register = function(type, callback) {
-      if (typeof callback === 'function') {
-        maybeInstrument(type)
-        register = function() {
-          callback.apply(undefined, arguments)
-        }
-      }
+      // TODO wrap all callbacks in try/catch
+      typeof callback === 'function' && maybeInstrument(type, 'register', callback)
       return this
     }
     this.before = function(type, callback) {
-      if (typeof callback === 'function') {
-        maybeInstrument(type)
-        before = callback
-      }
+      typeof callback === 'function' && maybeInstrument(type, 'before', callback)
       return this
     }
     this.after = function(type, callback) {
-      if (typeof callback === 'function') {
-        maybeInstrument(type)
-        after = callback
-      }
+      typeof callback === 'function' && maybeInstrument(type, 'after', callback)
       return this
     }
     this.destroy = function() {
       Object.keys(watchers).forEach(function(type) {
-        if (watchers[type][ownIndex]) {
-          delete watchers[type][ownIndex]
+        if (watchers[type][ownKey]) {
+          delete watchers[type][ownKey]
           if (Object.keys(watchers[type]).length === 0) {
             console.info('uninstrument', type)
             uninstrument[type] && uninstrument[type]()
@@ -62,12 +53,11 @@ var init, types
     instrument[types.setTimeout] = function() {
       natives[types.setTimeout] = setTimeout
       window.setTimeout = function(callback, delay) {
-        var ctx = {}
-        register && register(ctx, delay)
+        var ctxs = register('setTimeout', delay)
         natives[types.setTimeout].call(this, function() {
-          before && before(ctx)
-          callback()
-          after && after(ctx)
+          maybeCallbacks('setTimeout', 'before', ctxs)
+          callback() // TODO try/catch ?
+          maybeCallbacks('setTimeout', 'after', ctxs)
         }, delay)
       }
     }
@@ -94,9 +84,8 @@ var init, types
       }
 
       XMLHttpRequest.prototype.send = function() {
-        var ctx = {}
         natives[types.XMLHttpRequest]['addEventListener'].call(this, 'loadend', function() {
-          before && before(ctx)
+          maybeCallbacks('XMLHttpRequest', 'before', this.ctxs)
           for (var i = 0; i < (this.loadListeners || []).length; i++) {
             try {
               this.loadListeners[i].apply(this, arguments)
@@ -104,7 +93,7 @@ var init, types
               console.error(e)
             }
           }
-          after && after(ctx)
+          maybeCallbacks('XMLHttpRequest', 'after', this.ctxs)
         })
 
         if (this.onload) {
@@ -120,7 +109,7 @@ var init, types
           }
         }
 
-        register && register(ctx, this.__url)
+        this.ctxs = register('XMLHttpRequest', this.__url)
         natives[types.XMLHttpRequest]['send'].apply(this, arguments)
       }
     }
@@ -137,9 +126,31 @@ var init, types
       delete natives[types.XMLHttpRequest]
     }
 
+    function register() {
+      var args = Array.prototype.slice.call(arguments)
+      var type = args.shift()
+      var ctxs = {}
+
+      Object.keys(watchers[type]).forEach(function(key) {
+        ctxs[key] = {}
+        const register = watchers[type][key]['register']
+        var x = [ctxs[key]].concat(args)
+        register && register.apply(undefined, x)
+      })
+      return ctxs
+    }
+
+    function maybeCallbacks(type, hook, ctxs) {
+      Object.keys(watchers[type]).forEach(function(key) {
+        const callback = watchers[type][key][hook]
+        callback && callback(ctxs[key])
+      })
+    }
+
   }
 }())
 
 module.exports = {
   init: init,
+  types: types,
 }

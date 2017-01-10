@@ -1,69 +1,58 @@
+var AsyncWatcher = require('./src/async-watcher')
 
 var start, stop
 ;(function() {
   function PollObserver(types) {
-    this.schedulerWatch = AsyncWatchers.on(types).schedule(function(ctx, type) {
-      if (type === AsyncWatcher.types.XMLHttpRequest) {
-        return reportLoop()
-      }
-    }).before(function(ctx) {
-      ctx.listener = new PollObserver(AsyncWatcher.types.all)
-    }).after(function(ctx) {
-      ctx.listener && listener.destroy()
+    debugger
+    var watchers = []
+    types.forEach(function(type) {
+      debugger
+      watchers.push(AsyncWatcher.init().register(type, function (ctx) {
+        debugger
+        if (type === AsyncWatcher.types.XMLHttpRequest) {
+          return reportLoop()
+        }
+        debugger
+      }).before(type, function (ctx) {
+        debugger
+        ctx.listener = new PollObserver(AsyncWatcher.types.all)
+        debugger
+      }).after(type, function (ctx) {
+        debugger
+        ctx.listener && ctx.listener.destroy()
+        debugger
+      }))
     })
 
     this.destroy = function() {
-      this.schedulerWatch.destroy()
+      //debugger
+      watchers.forEach(function(watcher) {
+        debugger
+        watcher.destroy()
+      })
+    }
+    function reportLoop() {
+      debugger
     }
   }
 
-  /* AsyncWatchers */
-  AsyncWatchers.on = function(types) {
-    return new AsyncWatchers(types)
-  }
-
-  function AsyncWatchers(types) {
-    var watches = []
-    for (var i = 0; i < types.length; i++) {
-      watches.push(AsyncWatcher.on(types[i]))
-    }
-
-    this.schedule = function(callback) {
-      forEach('schedule', callback)
-      return this
-    }
-    this.before = function(callback) {
-      forEach('before', callback)
-      return this
-    }
-    this.after = function(callback) {
-      forEach('after', callback)
-      return this
-    }
-    this.destroy = function() {
-      forEach('destroy')
-    }
-
-    function forEach() {
-      var args = Array.prototype.slice.call(arguments)
-      var method = args.shift()
-      for (var i = 0; i < watches.length; i++) {
-        var watcher = watches[i]
-        watcher[method].apply(watcher, args)
-      }
-    }
-
-    return this
-  }
-
-
-
-  var pollObserver
+  var asyncWatcher
   start = function() {
-    pollObserver = new PollObserver([AsyncWatcher.types.XMLHttpRequest])
+    asyncWatcher = AsyncWatcher.init().register(AsyncWatcher.types.XMLHttpRequest, function (ctx) {
+      debugger // nop
+    }).before(AsyncWatcher.types.XMLHttpRequest, function (ctx) {
+      debugger
+      ctx.listener = new PollObserver(AsyncWatcher.types.all)
+      debugger
+    }).after(AsyncWatcher.types.XMLHttpRequest, function (ctx) {
+      debugger
+      ctx.listener && ctx.listener.destroy()
+      debugger
+    })
   }
   stop = function() {
-    pollObserver && pollObserver.destroy()
+    debugger
+    asyncWatcher && asyncWatcher.destroy()
   }
 })()
 
