@@ -4,8 +4,9 @@
   "description": "observe poll loops",
   "main": "index.js",
   "scripts": {
-    "tape-watch": "watchify test/all.js -o public/bundle.js",
-    "server-watch": "nodemon ./app.js"
+    "tape-watch": "watchify test/all.js -o public/test-bundle.js",
+    "server-watch": "nodemon ./app.js",
+    "build": "watchify ./index.js -o public/bundle.js"
   },
   "repository": {
     "type": "git",

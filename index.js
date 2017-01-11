@@ -22,9 +22,7 @@ var start, stop
       })
     }
     function reportLoop() {
-      //debugger
-      //alert('loop')
-      console.info('loop')
+      console.info('************ loop ************')
     }
   }
 

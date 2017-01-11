@@ -1,16 +1,24 @@
-module.exports = function(url, callback) {
+function loadend(url, callback) {
   var xhr = new XMLHttpRequest()
   xhr.open('GET', url)
   xhr.setRequestHeader('Content-Type', 'application/json')
+  xhr.addEventListener('loadend', function() {
+    callback(JSON.parse(xhr.responseText))
+  })
+  xhr.send()
+}
 
-  function onload () {
+function onload(url, callback) {
+  var xhr = new XMLHttpRequest()
+  xhr.open('GET', url)
+  xhr.setRequestHeader('Content-Type', 'application/json')
+  xhr.onload = function() {
     callback(JSON.parse(xhr.responseText))
   }
-
-  if (1) {
-    xhr.addEventListener('loadend', onload)
-  } else {
-    xhr.onload = onload
-  }
   xhr.send()
+}
+
+module.exports = {
+  loadend: loadend,
+  onload: onload,
 }

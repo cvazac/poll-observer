@@ -2,3 +2,5 @@
 .DS_Store
 node_modules/
 public/bundle.js
+public/test-bundle.js
+npm-debug.log

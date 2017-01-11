@@ -8,10 +8,9 @@ var init
     var currentStep = -1
     this.assert = function() {
       currentStep++
-      console.info('check for', currentStep, arguments)
 
       if (Array.isArray(arguments[0])) {
-        var foundStep = arguments[0].find(function (step) {
+        var foundStep = arguments[0].find(function(step) {
           return step[0] == currentStep
         })
         t.ok(typeof foundStep !== 'undefined')

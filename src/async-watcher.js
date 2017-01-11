@@ -47,6 +47,8 @@ var init, types
         natives[types.XMLHttpRequest][key] = XMLHttpRequest.prototype[key]
       })
 
+      // TODO, we really want to notify on any callback
+
       XMLHttpRequest.prototype.open = function() {
         this.__url = arguments[1]
         natives[types.XMLHttpRequest]['open'].apply(this, arguments)
@@ -59,34 +61,32 @@ var init, types
           return
         }
 
-        this.loadListeners = this.loadListeners || []
-        this.loadListeners.push(arguments[1])
+        if (typeof arguments[1] === 'function') {
+          this.__loadendListeners = this.__loadendListeners || []
+          this.__loadendListeners.push(arguments[1])
+        }
       }
 
       XMLHttpRequest.prototype.send = function() {
-        natives[types.XMLHttpRequest]['addEventListener'].call(this, 'loadend', function() {
-          executeCallbacks(this.__callbacks, 'before')
-          for (var i = 0; i < (this.loadListeners || []).length; i++) {
-            try {
-              this.loadListeners[i].apply(this, arguments)
-            } catch (e) {
-              console.error(e)
-            }
-          }
-          executeCallbacks(this.__callbacks, 'after')
-        })
+        // TODO look at `this.readystatechange`
+        if (typeof this.onload === 'function') {
+          this.__loadendListeners = this.__loadendListeners || []
+          this.__loadendListeners.push(this.onload)
+        }
+        this.onload = null
 
-        if (this.onload) {
-          var origOnload = this.onload
-          this.onload = function() {
+        if (this.__loadendListeners && this.__loadendListeners.length > 0) {
+          natives[types.XMLHttpRequest]['addEventListener'].call(this, 'loadend', function () {
             executeCallbacks(this.__callbacks, 'before')
-            try {
-              origOnload.apply(this, arguments)
-            } catch (e) {
-              console.error(e)
+            for (var i = 0; i < (this.__loadendListeners || []).length; i++) {
+              try {
+                this.__loadendListeners[i].apply(this, arguments)
+              } catch (e) {
+                console.error(e)
+              }
             }
             executeCallbacks(this.__callbacks, 'after')
-          }
+          })
         }
 
         this.__callbacks = register('XMLHttpRequest', this.__url)
@@ -163,6 +163,7 @@ var init, types
         }
       })
       delete watchers[ownKey]
+      //console.info('watchers', watchers.length, watchers.filter(Boolean).length)
     }
 
   }
