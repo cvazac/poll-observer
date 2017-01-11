@@ -1,6 +1,6 @@
 var init, types
 (function() {
-  var key = 0, watchers = {}, natives = {}
+  var key = 0, watchers = [], natives = {}, instrumented = {}
 
   init = function() {
     return new AsyncWatcher()
@@ -13,15 +13,6 @@ var init, types
 
   function AsyncWatcher() {
     var ownKey = key++
-
-    function maybeInstrument(type, hook, callback) {
-      watchers[type] = watchers[type] || {}
-      if (Object.keys(watchers[type]).length === 0) {
-        instrument[type] && instrument[type]()
-      }
-      watchers[type][ownKey] = watchers[type][ownKey] || {}
-      watchers[type][ownKey][hook] = callback
-    }
 
     this.register = function(type, callback) {
       // TODO wrap all callbacks in try/catch
@@ -36,28 +27,23 @@ var init, types
       typeof callback === 'function' && maybeInstrument(type, 'after', callback)
       return this
     }
-    this.destroy = function() {
-      Object.keys(watchers).forEach(function(type) {
-        if (watchers[type][ownKey]) {
-          delete watchers[type][ownKey]
-          if (Object.keys(watchers[type]).length === 0) {
-            console.info('uninstrument', type)
-            uninstrument[type] && uninstrument[type]()
-            delete watchers[type]
-          }
-        }
-      })
-    }
+    this.destroy = destroy
 
     var instrument = {}
     instrument[types.setTimeout] = function() {
       natives[types.setTimeout] = setTimeout
       window.setTimeout = function(callback, delay) {
-        var ctxs = register('setTimeout', delay)
+        var callbacks = register('setTimeout', delay)
+        function executeCallbacks(hook) {
+          (callbacks[hook] || []).forEach((function(callback) {
+            callback()
+          }))
+        }
+
         natives[types.setTimeout].call(this, function() {
-          maybeCallbacks('setTimeout', 'before', ctxs)
+          executeCallbacks('before')
           callback() // TODO try/catch ?
-          maybeCallbacks('setTimeout', 'after', ctxs)
+          executeCallbacks('after')
         }, delay)
       }
     }
@@ -99,13 +85,13 @@ var init, types
         if (this.onload) {
           var origOnload = this.onload
           this.onload = function() {
-            before && before(ctx)
+            maybeCallbacks('XMLHttpRequest', 'before', this.ctxs)
             try {
               origOnload.apply(this, arguments)
             } catch (e) {
               console.error(e)
             }
-            after && after(ctx)
+            maybeCallbacks('XMLHttpRequest', 'after', this.ctxs)
           }
         }
 
@@ -126,25 +112,61 @@ var init, types
       delete natives[types.XMLHttpRequest]
     }
 
+    function maybeInstrument(type, hook, callback) {
+      instrumented[type] = instrumented[type] || {}
+      if (Object.keys(instrumented[type]).length === 0) {
+        instrument[type] && instrument[type]()
+      }
+      instrumented[type][ownKey] = true
+
+      watchers[ownKey] = watchers[ownKey] || {}
+      watchers[ownKey][type] = watchers[ownKey][type] || {}
+      watchers[ownKey][type][hook] = callback
+    }
+
     function register() {
       var args = Array.prototype.slice.call(arguments)
       var type = args.shift()
-      var ctxs = {}
 
-      Object.keys(watchers[type]).forEach(function(key) {
-        ctxs[key] = {}
-        const register = watchers[type][key]['register']
-        var x = [ctxs[key]].concat(args)
-        register && register.apply(undefined, x)
-      })
-      return ctxs
+      var callbacks = {}
+      for (var i = watchers.length - 1; i >= 0; i--) {
+        var ctx = {}
+
+        var watcher = watchers[i]
+        var register = watcher && watcher[type] && watcher[type]['register']
+        register && register.apply(undefined, [ctx].concat(args))
+
+        ;['before', 'after'].forEach(function(hook) {
+          if (watcher && watcher[type] && watcher[type][hook]) {
+            callbacks[hook] = callbacks[hook] || []
+            callbacks[hook].push(watcher[type][hook].bind(undefined, ctx))
+          }
+        })
+      }
+      return callbacks
     }
 
     function maybeCallbacks(type, hook, ctxs) {
-      Object.keys(watchers[type]).forEach(function(key) {
-        const callback = watchers[type][key][hook]
-        callback && callback(ctxs[key])
+      for (var i = watchers.length - 1; i >= 0; i--) {
+        ctxs[i] && watchers[i] && watchers[i][type] && watchers[i][type][hook] && watchers[i][type][hook](ctxs[i])
+      }
+    }
+
+    function destroy() {
+      if (!watchers[ownKey]) {
+        return
+      }
+
+      Object.keys(watchers[ownKey]).forEach(function(type) {
+        if (instrumented[type]) {
+          delete instrumented[type][ownKey]
+          if (Object.keys(instrumented[type]).length === 0) {
+            uninstrument[type] && uninstrument[type]()
+            delete instrumented[type]
+          }
+        }
       })
+      delete watchers[ownKey]
     }
 
   }
