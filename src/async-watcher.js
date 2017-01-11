@@ -34,16 +34,10 @@ var init, types
       natives[types.setTimeout] = setTimeout
       window.setTimeout = function(callback, delay) {
         var callbacks = register('setTimeout', delay)
-        function executeCallbacks(hook) {
-          (callbacks[hook] || []).forEach((function(callback) {
-            callback()
-          }))
-        }
-
         natives[types.setTimeout].call(this, function() {
-          executeCallbacks('before')
+          executeCallbacks(callbacks, 'before')
           callback() // TODO try/catch ?
-          executeCallbacks('after')
+          executeCallbacks(callbacks, 'after')
         }, delay)
       }
     }
@@ -71,7 +65,7 @@ var init, types
 
       XMLHttpRequest.prototype.send = function() {
         natives[types.XMLHttpRequest]['addEventListener'].call(this, 'loadend', function() {
-          maybeCallbacks('XMLHttpRequest', 'before', this.ctxs)
+          executeCallbacks(this.__callbacks, 'before')
           for (var i = 0; i < (this.loadListeners || []).length; i++) {
             try {
               this.loadListeners[i].apply(this, arguments)
@@ -79,23 +73,23 @@ var init, types
               console.error(e)
             }
           }
-          maybeCallbacks('XMLHttpRequest', 'after', this.ctxs)
+          executeCallbacks(this.__callbacks, 'after')
         })
 
         if (this.onload) {
           var origOnload = this.onload
           this.onload = function() {
-            maybeCallbacks('XMLHttpRequest', 'before', this.ctxs)
+            executeCallbacks(this.__callbacks, 'before')
             try {
               origOnload.apply(this, arguments)
             } catch (e) {
               console.error(e)
             }
-            maybeCallbacks('XMLHttpRequest', 'after', this.ctxs)
+            executeCallbacks(this.__callbacks, 'after')
           }
         }
 
-        this.ctxs = register('XMLHttpRequest', this.__url)
+        this.__callbacks = register('XMLHttpRequest', this.__url)
         natives[types.XMLHttpRequest]['send'].apply(this, arguments)
       }
     }
@@ -115,6 +109,7 @@ var init, types
     function maybeInstrument(type, hook, callback) {
       instrumented[type] = instrumented[type] || {}
       if (Object.keys(instrumented[type]).length === 0) {
+        console.info('instrument', type)
         instrument[type] && instrument[type]()
       }
       instrumented[type][ownKey] = true
@@ -146,10 +141,10 @@ var init, types
       return callbacks
     }
 
-    function maybeCallbacks(type, hook, ctxs) {
-      for (var i = watchers.length - 1; i >= 0; i--) {
-        ctxs[i] && watchers[i] && watchers[i][type] && watchers[i][type][hook] && watchers[i][type][hook](ctxs[i])
-      }
+    function executeCallbacks(callbacks, hook) {
+      (callbacks[hook] || []).forEach((function(callback) {
+        callback()
+      }))
     }
 
     function destroy() {
@@ -161,6 +156,7 @@ var init, types
         if (instrumented[type]) {
           delete instrumented[type][ownKey]
           if (Object.keys(instrumented[type]).length === 0) {
+            console.info('uninstrument', type)
             uninstrument[type] && uninstrument[type]()
             delete instrumented[type]
           }
