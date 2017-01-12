@@ -43,51 +43,55 @@ var init, types
     }
     instrument[types.XMLHttpRequest] = function() {
       natives[types.XMLHttpRequest] = {}
-      ;['addEventListener', 'send', 'open'].forEach(function(key) {
+      ;['addEventListener', 'removeEventListener', 'send', 'open'].forEach(function(key) {
         natives[types.XMLHttpRequest][key] = XMLHttpRequest.prototype[key]
       })
-
-      // TODO, we really want to notify on any callback
 
       XMLHttpRequest.prototype.open = function() {
         this.__url = arguments[1]
         natives[types.XMLHttpRequest]['open'].apply(this, arguments)
       }
 
-      //TODO 'readystatechange' if (4 === xhr.readyState && 200 === xhr.status) {
       XMLHttpRequest.prototype.addEventListener = function() {
-        if (arguments[0] !== 'loadend') {
-          natives[types.XMLHttpRequest]['addEventListener'].apply(this, arguments)
-          return
-        }
+        var args = Array.prototype.slice.call(arguments)
 
-        if (typeof arguments[1] === 'function') {
-          this.__loadendListeners = this.__loadendListeners || []
-          this.__loadendListeners.push(arguments[1])
+        var origListener = args[1]
+        origListener.__wrapped = function() {
+          executeCallbacks(this.__callbacks, 'before')
+          origListener.apply(this, arguments)
+          executeCallbacks(this.__callbacks, 'after')
         }
+        args[1] = origListener.__wrapped
+
+        natives[types.XMLHttpRequest]['addEventListener'].apply(this, args)
+      }
+
+      XMLHttpRequest.prototype.removeEventListener = function() {
+        var args = Array.prototype.slice.call(arguments)
+        args[1] = args[1].__wrapped
+        natives[types.XMLHttpRequest]['removeEventListener'].apply(this, args)
       }
 
       XMLHttpRequest.prototype.send = function() {
-        // TODO look at `this.readystatechange`
-        if (typeof this.onload === 'function') {
-          this.__loadendListeners = this.__loadendListeners || []
-          this.__loadendListeners.push(this.onload)
-        }
-        this.onload = null
+        //investigate if these can be unset _after_ .send()
+        var xhr = this
+        ;['loadstart', 'progress', 'load', 'loadend', 'readystatechange', 'abort', 'error', 'timeout'].forEach(function(event) {
+          const propName = 'on' + event
+          if (!xhr[propName]) {
+            return
+          }
 
-        if (this.__loadendListeners && this.__loadendListeners.length > 0) {
-          natives[types.XMLHttpRequest]['addEventListener'].call(this, 'loadend', function () {
+          var origListener = xhr[propName]
+          xhr[propName] = function () {
             executeCallbacks(this.__callbacks, 'before')
-            for (var i = 0; i < (this.__loadendListeners || []).length; i++) {
-              try {
-                this.__loadendListeners[i].apply(this, arguments)
-              } catch (e) {
-                console.error(e)
-              }
+            try {
+              origListener.apply(this, arguments)
+            } catch (e) {
+              console.error(e)
             }
             executeCallbacks(this.__callbacks, 'after')
-          })
-        }
+          }
+        })
 
         this.__callbacks = register('XMLHttpRequest', this.__url)
         natives[types.XMLHttpRequest]['send'].apply(this, arguments)

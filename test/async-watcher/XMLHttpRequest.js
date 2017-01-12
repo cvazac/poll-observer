@@ -19,6 +19,70 @@ function _assertMethods(testMethod) {
   })
 }
 
+test('XMLHttpRequest - listeners', function(t) {
+  var register = 0, before = 0, after = 0, listener = 0, legacy = 0
+  const asyncWatcher = AsyncWatcher.init().register('XMLHttpRequest', function (ctx, url) {
+    register++
+  }).before('XMLHttpRequest', function (ctx) {
+    before++
+  }).after('XMLHttpRequest', function (ctx) {
+    after++
+  })
+
+  var xhr = new XMLHttpRequest()
+  xhr.open('GET', './data1.json')
+  ;['loadstart', 'progress', 'load', 'loadend', 'readystatechange', 'abort', 'error', 'timeout'].forEach(function (event) {
+    xhr.addEventListener(event, function (e) {
+      listener++
+    })
+    xhr['on' + event] = function (e) {
+      legacy++
+    }
+  })
+  xhr.send()
+
+  setTimeout(function() {
+    t.ok(register === 1)
+    t.ok(listener === legacy)
+    t.ok(before === after)
+    t.ok(2 * listener === before)
+
+    asyncWatcher.destroy()
+    t.end()
+  }, 500)
+})
+
+test('XMLHttpRequest - removeEventListener', function(t) {
+  var register = 0, before = 0, after = 0, listener = 0
+  const asyncWatcher = AsyncWatcher.init().register('XMLHttpRequest', function (ctx, url) {
+    register++
+  }).before('XMLHttpRequest', function (ctx) {
+    before++
+  }).after('XMLHttpRequest', function (ctx) {
+    after++
+  })
+
+  var xhr = new XMLHttpRequest()
+  xhr.open('GET', './data1.json')
+  function handler() {
+    listener++
+  }
+  xhr.addEventListener('loadstart', handler)
+  xhr.removeEventListener('loadstart', handler)
+  xhr.send()
+
+  setTimeout(function() {
+    t.ok(register === 1)
+    t.ok(before === 0)
+    t.ok(after === 0)
+    t.ok(listener === 0)
+
+    asyncWatcher.destroy()
+    t.end()
+  }, 500)
+
+})
+
 test('XMLHttpRequest - addEventListener - loadend', function(t) {
   const orderAsserter = OrderAsserter.init(t)
 
