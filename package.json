@@ -6,7 +6,8 @@
   "scripts": {
     "tape-watch": "watchify test/all.js -o public/test-bundle.js",
     "server-watch": "nodemon ./app.js",
-    "build": "watchify ./index.js -o public/bundle.js"
+    "build": "browserify ./index.js -o public/bundle.js",
+    "test": "browserify test/all.js -o public/test-bundle.js && open http://localhost:3000/"
   },
   "repository": {
     "type": "git",
