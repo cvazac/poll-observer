@@ -1,6 +1,6 @@
 {
   "name": "poll-observer",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "observe poll loops",
   "main": "index.js",
   "scripts": {
