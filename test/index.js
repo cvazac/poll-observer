@@ -11,8 +11,8 @@ function fetch(url, callback) {
 test('xhr - xhr', function(t) {
   pollObserver.start(function(xhrs) {
     t.ok(xhrs.length === 2)
-    t.ok(xhrs[0] == './data1.json')
-    t.ok(xhrs[1] == './data2.json')
+    t.ok(xhrs[0] === './data1.json')
+    t.ok(xhrs[1] === './data2.json')
     t.end()
     pollObserver.stop()
   })
@@ -24,8 +24,8 @@ test('xhr - xhr', function(t) {
 test('xhr - setTimeout - xhr', function(t) {
   pollObserver.start(function (xhrs) {
     t.ok(xhrs.length === 2)
-    t.ok(xhrs[0] == './data1.json')
-    t.ok(xhrs[1] == './data2.json')
+    t.ok(xhrs[0] === './data1.json')
+    t.ok(xhrs[1] === './data2.json')
     t.end()
     pollObserver.stop()
   })
@@ -39,8 +39,8 @@ test('xhr - setTimeout - xhr', function(t) {
 test('xhr - setTimeout - setTimeout - xhr', function(t) {
   pollObserver.start(function (xhrs) {
     t.ok(xhrs.length === 2)
-    t.ok(xhrs[0] == './data1.json')
-    t.ok(xhrs[1] == './data2.json')
+    t.ok(xhrs[0] === './data1.json')
+    t.ok(xhrs[1] === './data2.json')
     t.end()
     pollObserver.stop()
   })
@@ -71,7 +71,7 @@ test('setInterval - xhr', function(t) {
 
   var count = 0
   var x = setInterval(function() {
-    if (count++ == total) {
+    if (count++ === total) {
       return clearInterval(x)
     }
     fetch('./data1.json?count=' + count)

@@ -1,14 +1,14 @@
 var start, stop
 (function() {
-  'use strict';
+  'use strict'
 
   var natives = {}
   start = function(listener) {
     var stack = [], pushToStack = function(tick) {
-      const __stack = stack.slice(0)
-      __stack.push(tick)
-      return __stack
-    }, addTick = pushToStack
+        const __stack = stack.slice(0)
+        __stack.push(tick)
+        return __stack
+      }, addTick = pushToStack
 
     instrumentAll()
 
@@ -21,7 +21,7 @@ var start, stop
 
         const __stack = addTick({
           type: 'setTimeout',
-          delay: delay,
+          delay: delay
         })
         return natives['setTimeout'].call(this, function () {
           stack = __stack
@@ -40,7 +40,7 @@ var start, stop
         addTick({
           type: 'setInterval',
           delay: delay,
-          stack: __stack,
+          stack: __stack
         })
         return natives['setInterval'].call(this, function () {
           addTick = function(tick) {
@@ -85,7 +85,7 @@ var start, stop
       }
 
       XMLHttpRequest.prototype.send = function () {
-        //investigate if these can be unset _after_ .send()
+        // investigate if these can be unset _after_ .send()
         var xhr = this
         ;['loadstart', 'progress', 'load', 'loadend', 'readystatechange', 'abort', 'error', 'timeout'].forEach(function (event) {
           const propName = 'on' + event
@@ -108,7 +108,7 @@ var start, stop
         natives['XMLHttpRequest']['send'].apply(this, arguments)
         this.__stack = addTick({
           type: 'XMLHttpRequest',
-          url: typeof this.__url.toString === 'function' ? this.__url.toString() : this.__url, //__url could be and object
+          url: typeof this.__url.toString === 'function' ? this.__url.toString() : this.__url // __url could be and object
         })
         checkLoop(this)
       }
@@ -133,7 +133,8 @@ var start, stop
   stop = function() {
     Object.keys(natives).forEach(function(objectKey) {
       if (typeof natives[objectKey] === 'function') {
-        return window[objectKey] = natives[objectKey]
+        window[objectKey] = natives[objectKey]
+        return
       }
       Object.keys(natives[objectKey]).forEach(function(methodKey) {
         window[objectKey].prototype[methodKey] = natives[objectKey][methodKey]
@@ -146,5 +147,5 @@ var start, stop
 
 module.exports = {
   start: start,
-  stop: stop,
+  stop: stop
 }

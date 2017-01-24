@@ -6,6 +6,7 @@
   "scripts": {
     "tape-watch": "watchify test/all.js -o public/test-bundle.js",
     "server-watch": "nodemon ./app.js",
+    "lint-watch": "esw -w .",
     "build": "browserify ./index.js -o public/bundle.js",
     "test": "browserify test/all.js -o public/test-bundle.js && open http://localhost:3000/"
   },
@@ -32,6 +33,11 @@
   },
   "devDependencies": {
     "browserify": "^13.3.0",
+    "eslint": "^3.14.0",
+    "eslint-config-standard": "^6.2.1",
+    "eslint-plugin-promise": "^3.4.0",
+    "eslint-plugin-standard": "^2.0.1",
+    "eslint-watch": "^2.1.14",
     "express": "^4.14.0",
     "nodemon": "^1.11.0",
     "tape": "^4.6.3",
