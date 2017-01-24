@@ -5,9 +5,9 @@
 
 ```
 const pollObserver = require('poll-observer')
-  pollObserver.start(function(xhrs) {
-    //
-  })
+pollObserver.start(function(xhrs) {
+  //
+})
 
 // some time later, maybe
 pollObserver.stop()
