@@ -1,3 +1,6 @@
-require('./index')
+require('./xhr')
 require('./setTimeout')
+require('./setImmediate')
+require('./requestAnimationFrame')
+require('./requestIdleCallback')
 require('./setInterval')

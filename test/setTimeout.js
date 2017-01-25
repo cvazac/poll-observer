@@ -1,23 +1,17 @@
-const test = require('tape')
-const pollObserver = require('../index')
+var test = require('tape')
+var pollObserver = require('../index')
+var stamp = require('./utils/utils').stamp
+var testScheduler = require('./utils/schedulers').testScheduler
 
-test('setTimeout', function (t) {
+test('setTimeout', function(t) {
   pollObserver.start()
-  setTimeout(function () {
+  var start = stamp(), delay = 20, fudge = 10
+  setTimeout(function() {
+    var actualDelay = stamp() - start
+    t.ok(actualDelay >= delay && actualDelay < delay + fudge)
     t.end()
-  })
+  }, delay)
   pollObserver.stop()
 })
 
-test('clearTimeout', function (t) {
-  pollObserver.start()
-  const id = setTimeout(function () {
-    t.fail()
-  })
-  clearTimeout(id)
-  pollObserver.stop()
-
-  setTimeout(function () {
-    t.end()
-  }, 100)
-})
+testScheduler('setTimeout', 'clearTimeout')

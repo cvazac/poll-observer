@@ -4,7 +4,7 @@
 
 
 ```
-const pollObserver = require('poll-observer')
+var pollObserver = require('poll-observer')
 pollObserver.start(function(xhrs) {
   //
 })

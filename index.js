@@ -3,9 +3,21 @@ var start, stop
   'use strict'
 
   var natives = {}
+  function forEach(array, fn, _this) {
+    array = array || []
+    for (var i = 0; i < array.length; i++) {
+      fn.call(_this, array[i], i)
+    }
+  }
+  function forEachKey(object, fn, _this) {
+    var i = 0
+    for (var key in object) {
+      object.hasOwnProperty(key) && fn.call(_this, key, i++)
+    }
+  }
   start = function(listener) {
     var stack = [], pushToStack = function(tick) {
-        const __stack = stack.slice(0)
+        var __stack = stack.slice(0)
         __stack.push(tick)
         return __stack
       }, addTick = pushToStack
@@ -13,61 +25,73 @@ var start, stop
     instrumentAll()
 
     function instrumentAll() {
-      natives['setTimeout'] = window.setTimeout
-      window.setTimeout = function (callback, delay) {
-        if (typeof callback !== 'function') {
+      // TODO postMessage / addEventListener('message')
+
+      forEach(['setTimeout', 'setImmediate', 'requestAnimationFrame', 'requestIdleCallback'], function(methodName) {
+        if (typeof window[methodName] === 'undefined') {
           return
         }
 
-        const __stack = addTick({
-          type: 'setTimeout',
-          delay: delay
-        })
-        return natives['setTimeout'].call(this, function () {
-          stack = __stack
-          callback()
-          stack = []
-        }, delay)
-      }
+        natives[methodName] = window[methodName]
+        window[methodName] = function() {
+          var args = Array.prototype.slice.call(arguments)
+          var callback = args[0]
+          if (typeof callback !== 'function') {
+            return
+          }
+
+          var __stack = addTick({
+            type: methodName
+          })
+          args[0] = function() {
+            stack = __stack
+            callback()
+            stack = []
+          }
+          return natives[methodName].apply(this, args)
+        }
+      })
 
       natives['setInterval'] = window.setInterval
-      window.setInterval = function (callback, delay) {
+      window.setInterval = function() {
+        var args = Array.prototype.slice.call(arguments)
+        var callback = args[0]
         if (typeof callback !== 'function') {
           return
         }
 
-        const __stack = []
+        var __stack = []
         addTick({
           type: 'setInterval',
-          delay: delay,
           stack: __stack
         })
-        return natives['setInterval'].call(this, function () {
+        args[0] = function() {
           addTick = function(tick) {
             __stack.push(tick)
             return __stack
           }
           callback()
           addTick = pushToStack
-        }, delay)
+        }
+        return natives['setInterval'].apply(this, args)
       }
 
       natives['XMLHttpRequest'] = {}
-      ;['addEventListener', 'removeEventListener', 'send', 'open'].forEach(function (key) {
+      forEach(['addEventListener', 'removeEventListener', 'send', 'open'], function(key) {
         natives['XMLHttpRequest'][key] = XMLHttpRequest.prototype[key]
       })
 
-      XMLHttpRequest.prototype.open = function () {
+      XMLHttpRequest.prototype.open = function() {
         this.__url = arguments[1]
         natives['XMLHttpRequest']['open'].apply(this, arguments)
       }
 
-      XMLHttpRequest.prototype.addEventListener = function () {
+      XMLHttpRequest.prototype.addEventListener = function() {
         var args = Array.prototype.slice.call(arguments)
 
         var origListener = args[1]
         if (typeof origListener === 'function') {
-          origListener.__wrapped = function () {
+          origListener.__wrapped = function() {
             beforeXhr(this)
             origListener.apply(this, arguments)
             afterXhr(this)
@@ -78,23 +102,23 @@ var start, stop
         natives['XMLHttpRequest']['addEventListener'].apply(this, args)
       }
 
-      XMLHttpRequest.prototype.removeEventListener = function () {
+      XMLHttpRequest.prototype.removeEventListener = function() {
         var args = Array.prototype.slice.call(arguments)
         args[1] = args[1].__wrapped
         natives['XMLHttpRequest']['removeEventListener'].apply(this, args)
       }
 
-      XMLHttpRequest.prototype.send = function () {
+      XMLHttpRequest.prototype.send = function() {
         // investigate if these can be unset _after_ .send()
         var xhr = this
-        ;['loadstart', 'progress', 'load', 'loadend', 'readystatechange', 'abort', 'error', 'timeout'].forEach(function (event) {
-          const propName = 'on' + event
+        forEach(['loadstart', 'progress', 'load', 'loadend', 'readystatechange', 'abort', 'error', 'timeout'], function(event) {
+          var propName = 'on' + event
           if (!xhr[propName]) {
             return
           }
 
           var origListener = xhr[propName]
-          xhr[propName] = function () {
+          xhr[propName] = function() {
             beforeXhr(this)
             try {
               origListener.apply(this, arguments)
@@ -120,8 +144,8 @@ var start, stop
         stack = []
       }
       function checkLoop(xhr) {
-        const xhrs = []
-        xhr.__stack.forEach(function (tick) {
+        var xhrs = []
+        forEach(xhr.__stack, function(tick) {
           if (tick.type === 'XMLHttpRequest') {
             xhrs.push(tick.url)
           }
@@ -131,12 +155,12 @@ var start, stop
     }
   }
   stop = function() {
-    Object.keys(natives).forEach(function(objectKey) {
+    forEachKey(natives, function(objectKey) {
       if (typeof natives[objectKey] === 'function') {
         window[objectKey] = natives[objectKey]
         return
       }
-      Object.keys(natives[objectKey]).forEach(function(methodKey) {
+      forEachKey(natives[objectKey], function(methodKey) {
         window[objectKey].prototype[methodKey] = natives[objectKey][methodKey]
       })
     })
