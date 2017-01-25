@@ -62,8 +62,7 @@ var start, stop
 
         var __stack = []
         addTick({
-          type: 'setInterval',
-          stack: __stack
+          type: 'setInterval'
         })
         args[0] = function() {
           addTick = function(tick) {
