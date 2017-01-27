@@ -28,9 +28,6 @@
     "url": "https://github.com/cvazac/poll-observer/issues"
   },
   "homepage": "https://github.com/cvazac/poll-observer#readme",
-  "dependencies": {
-    "stacktrace-js": "^1.3.1"
-  },
   "devDependencies": {
     "browserify": "^13.3.0",
     "eslint": "^3.14.0",
