@@ -1,7 +1,7 @@
 # poll-observer
 
 ## Intro
-`poll-observer` instruments `XMLHttpRequest`, `setTimeout`, `setImmediate`, etc. to identify and report common poll loop patterns from the browser. 
+`poll-observer` instruments `XMLHttpRequest`, `setTimeout`, `setInterval`, etc. to identify and report common poll loop patterns from the browser.
 
 ## Usage
 ```
