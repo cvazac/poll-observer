@@ -1,4 +1,4 @@
-var start, stop
+var observe, disconnect
 (function() {
   'use strict'
 
@@ -15,7 +15,7 @@ var start, stop
       object.hasOwnProperty(key) && fn.call(_this, key, i++)
     }
   }
-  start = function(listener) {
+  observe = function(listener) {
     var stack = [], pushToStack = function(tick) {
         var __stack = stack.slice(0)
         __stack.push(tick)
@@ -143,17 +143,24 @@ var start, stop
         stack = []
       }
       function checkLoop(xhr) {
-        var xhrs = []
+        var entries = []
         forEach(xhr.__stack, function(tick) {
           if (tick.type === 'XMLHttpRequest') {
-            xhrs.push(tick.url)
+            entries.push({
+              type: 'poll',
+              url: tick.url
+            })
           }
         })
-        xhrs.length > 1 && listener(xhrs)
+        entries.length > 1 && listener({
+          getEntries: function() {
+            return entries
+          }
+        })
       }
     }
   }
-  stop = function() {
+  disconnect = function() {
     forEachKey(natives, function(objectKey) {
       if (typeof natives[objectKey] === 'function') {
         window[objectKey] = natives[objectKey]
@@ -169,6 +176,6 @@ var start, stop
 })()
 
 module.exports = {
-  start: start,
-  stop: stop
+  observe: observe,
+  disconnect: disconnect
 }

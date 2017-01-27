@@ -5,29 +5,29 @@ var xhr = utils.xhr
 var stamp = utils.stamp
 
 test('setInterval', function(t) {
-  pollObserver.start()
-  var iteration = 0, start = stamp(), delay = 50, fudge = 10
+  pollObserver.observe()
+  var iteration = 0, observe = stamp(), delay = 50, fudge = 10
 
   var id = setInterval(function() {
-    var actualDelay = stamp() - start
+    var actualDelay = stamp() - observe
     t.ok(actualDelay >= delay - fudge && actualDelay < delay + fudge)
     if (iteration++ > 5) {
       t.end()
       clearInterval(id) // tape will fail if `clearInterval` fails, because `end()` will be called more than once
       return
     }
-    start = stamp()
+    observe = stamp()
   }, delay)
-  pollObserver.stop()
+  pollObserver.disconnect()
 })
 
 test('clearInterval', function(t) {
-  pollObserver.start()
+  pollObserver.observe()
   var id = setInterval(function() {
     t.fail()
   })
   clearInterval(id)
-  pollObserver.stop()
+  pollObserver.disconnect()
 
   setTimeout(function() {
     t.end()
@@ -36,17 +36,19 @@ test('clearInterval', function(t) {
 
 test('setInterval - xhr', function(t) {
   var poll = 1, total = 5
-  pollObserver.start(function(xhrs) {
+  pollObserver.observe(function(data) {
+    var entries = data.getEntries()
     poll++
-    t.ok(poll === xhrs.length)
+    t.ok(poll === entries.length)
 
-    for (var i = 0; i < xhrs.length; i++) {
-      t.ok(xhrs[i] === './data1.json?iteration=' + (i + 1))
+    for (var i = 0; i < entries.length; i++) {
+      t.ok(entries[i].type === 'poll')
+      t.ok(entries[i].url === './data1.json?iteration=' + (i + 1))
     }
 
     if (poll === total) {
       t.end()
-      pollObserver.stop()
+      pollObserver.disconnect()
     }
   })
 

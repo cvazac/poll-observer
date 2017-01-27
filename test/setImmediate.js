@@ -4,11 +4,11 @@ var testScheduler = require('./utils/schedulers').testScheduler
 
 if (window.setImmediate) {
   test('setImmediate', function (t) {
-    pollObserver.start()
+    pollObserver.observe()
     setImmediate(function () {
       t.end()
     })
-    pollObserver.stop()
+    pollObserver.disconnect()
   })
 
   testScheduler('setImmediate', 'clearImmediate')

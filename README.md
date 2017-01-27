@@ -6,12 +6,15 @@
 ## Usage
 ```
 var pollObserver = require('poll-observer')
-pollObserver.start(function(xhrs) {
-  xhrs.forEach(function(xhr) {
-    console.info(xhr)
+var shouldDisconnect = false
+pollObserver.observe(function(data) {
+  var entries = data.getEntries()
+  entries.forEach(function(entry) {
+    console.info('Poll Entry', entry.type, entry.url)
   })
-})
 
-// some time later, maybe
-pollObserver.stop()
+  if (shouldDisconnect) {
+    pollObserver.disconnect()
+  }
+})
 ```

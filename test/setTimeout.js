@@ -4,14 +4,14 @@ var stamp = require('./utils/utils').stamp
 var testScheduler = require('./utils/schedulers').testScheduler
 
 test('setTimeout', function(t) {
-  pollObserver.start()
-  var start = stamp(), delay = 20, fudge = 10
+  pollObserver.observe()
+  var observe = stamp(), delay = 20, fudge = 10
   setTimeout(function() {
-    var actualDelay = stamp() - start
+    var actualDelay = stamp() - observe
     t.ok(actualDelay >= delay && actualDelay < delay + fudge)
     t.end()
   }, delay)
-  pollObserver.stop()
+  pollObserver.disconnect()
 })
 
 testScheduler('setTimeout', 'clearTimeout')

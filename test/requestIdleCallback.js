@@ -4,11 +4,11 @@ var testScheduler = require('./utils/schedulers').testScheduler
 
 if (window.requestIdleCallback) {
   test('requestIdleCallback', function (t) {
-    pollObserver.start()
+    pollObserver.observe()
     requestIdleCallback(function () {
       t.end()
     })
-    pollObserver.stop()
+    pollObserver.disconnect()
   })
 
   testScheduler('requestIdleCallback', 'cancelIdleCallback')

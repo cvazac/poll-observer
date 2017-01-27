@@ -4,11 +4,11 @@ var testScheduler = require('./utils/schedulers').testScheduler
 
 if (window.requestAnimationFrame) {
   test('requestAnimationFrame', function (t) {
-    pollObserver.start()
+    pollObserver.observe()
     requestAnimationFrame(function () {
       t.end()
     })
-    pollObserver.stop()
+    pollObserver.disconnect()
   })
 
   testScheduler('requestAnimationFrame', 'cancelAnimationFrame')
