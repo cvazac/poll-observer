@@ -20,37 +20,41 @@ module.exports = {
 
     test('xhr - ' + setMethodName + ' - xhr', function(t) {
       pollObserver.observe(function(data) {
+        t.ok(data.pollId === 0)
+
         var entries = data.getEntries()
         t.ok(entries.length === 2)
         t.ok(entries[0].type === 'poll')
-        t.ok(entries[0].url === './data1.json')
+        t.ok(entries[0].url === './data.json?req=1')
         t.ok(entries[1].type === 'poll')
-        t.ok(entries[1].url === './data2.json')
+        t.ok(entries[1].url === './data.json?req=2')
         t.end()
         pollObserver.disconnect()
       })
-      xhr('./data1.json', function() {
+      xhr('./data.json?req=1', function() {
         window[setMethodName](function() {
-          xhr('./data2.json')
+          xhr('./data.json?req=2')
         })
       })
     })
 
     test('xhr - ' + setMethodName + ' - ' + setMethodName + ' - xhr', function(t) {
       pollObserver.observe(function(data) {
+        t.ok(data.pollId === 0)
+
         var entries = data.getEntries()
         t.ok(entries.length === 2)
         t.ok(entries[0].type === 'poll')
-        t.ok(entries[0].url === './data1.json')
+        t.ok(entries[0].url === './data.json?req=1')
         t.ok(entries[1].type === 'poll')
-        t.ok(entries[1].url === './data2.json')
+        t.ok(entries[1].url === './data.json?req=2')
         t.end()
         pollObserver.disconnect()
       })
-      xhr('./data1.json', function() {
+      xhr('./data.json?req=1', function() {
         window[setMethodName](function() {
           window[setMethodName](function() {
-            xhr('./data2.json')
+            xhr('./data.json?req=2')
           })
         })
       })

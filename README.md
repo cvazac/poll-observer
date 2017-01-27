@@ -10,11 +10,23 @@ var shouldDisconnect = false
 pollObserver.observe(function(data) {
   var entries = data.getEntries()
   entries.forEach(function(entry) {
-    console.info('Poll Entry', entry.type, entry.url)
+    console.info('poll entry:', data.pollId, entry.type, entry.url)
   })
 
   if (shouldDisconnect) {
     pollObserver.disconnect()
   }
 })
+```
+
+## Example output
+```
+poll entry: 0 poll http://mysite.com/data.json?reqIndex=0
+poll entry: 0 poll http://mysite.com/data.json?reqIndex=1
+
+.... sometime later, maybe ...
+poll entry: 0 poll http://mysite.com/data.json?reqIndex=2
+
+.... and even later, maybe ...
+poll entry: 0 poll http://mysite.com/data.json?reqIndex=3
 ```

@@ -35,28 +35,56 @@ test('clearInterval', function(t) {
 })
 
 test('setInterval - xhr', function(t) {
-  var poll = 1, total = 5
+  var intervalTotal = 5, loops = ['a', 'b', 'c'].map(function (key) {
+      var url = './data.json?req=' + key
+      return {
+        key: key,
+        validations: [
+          function (data) {
+            var entries = data.getEntries()
+            t.ok(entries.length === 2)
+            t.ok(entries[0].type === 'poll')
+            t.ok(entries[0].url === url + 0)
+            t.ok(entries[1].type === 'poll')
+            t.ok(entries[1].url === url + 1)
+          }, function (data) {
+            var entries = data.getEntries()
+            t.ok(entries.length === 1)
+            t.ok(entries[0].type === 'poll')
+            t.ok(entries[0].url === url + 2)
+          }, function (data) {
+            var entries = data.getEntries()
+            t.ok(entries.length === 1)
+            t.ok(entries[0].type === 'poll')
+            t.ok(entries[0].url === url + 3)
+          }, function (data) {
+            var entries = data.getEntries()
+            t.ok(entries.length === 1)
+            t.ok(entries[0].type === 'poll')
+            t.ok(entries[0].url === url + 4)
+          }
+        ]
+      }
+    }), count = loops.length
+
   pollObserver.observe(function(data) {
-    var entries = data.getEntries()
-    poll++
-    t.ok(poll === entries.length)
+    var validations = loops[data.pollId].validations
+    validations.shift()(data)
 
-    for (var i = 0; i < entries.length; i++) {
-      t.ok(entries[i].type === 'poll')
-      t.ok(entries[i].url === './data1.json?iteration=' + (i + 1))
-    }
-
-    if (poll === total) {
+    if (validations.length === 0 && --count === 0) {
       t.end()
       pollObserver.disconnect()
     }
   })
 
-  var iteration = 0
-  var x = setInterval(function() {
-    if (iteration++ === total) {
-      return clearInterval(x)
-    }
-    xhr('./data1.json?iteration=' + iteration)
-  }, 100)
+  loops.forEach(function(loop, index) {
+    var url = './data.json?req=' + loop.key
+    var iteration = 0
+    var x = setInterval(function() {
+      if (iteration++ === intervalTotal) {
+        return clearInterval(x)
+      }
+      xhr(url + (iteration - 1))
+    }, 100)
+  })
 })

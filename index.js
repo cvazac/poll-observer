@@ -16,7 +16,7 @@ var observe, disconnect
     }
   }
   observe = function(listener) {
-    var stack = [], pushToStack = function(tick) {
+    var stack = [], sendId = 0, pushToStack = function(tick) {
         var __stack = stack.slice(0)
         __stack.push(tick)
         return __stack
@@ -131,6 +131,7 @@ var observe, disconnect
         natives['XMLHttpRequest']['send'].apply(this, arguments)
         this.__stack = addTick({
           type: 'XMLHttpRequest',
+          sendId: sendId++,
           url: typeof this.__url.toString === 'function' ? this.__url.toString() : this.__url // __url could be and object
         })
         checkLoop(this)
@@ -143,16 +144,27 @@ var observe, disconnect
         stack = []
       }
       function checkLoop(xhr) {
-        var entries = []
+        var entries = [], pollId
         forEach(xhr.__stack, function(tick) {
           if (tick.type === 'XMLHttpRequest') {
+            pollId = typeof pollId === 'undefined' ? tick.sendId : pollId
             entries.push({
               type: 'poll',
               url: tick.url
             })
           }
         })
-        entries.length > 1 && listener({
+
+        if (entries.length < 2) {
+          return
+        }
+
+        if (entries.length > 2) {
+          entries = entries.slice(entries.length - 1)
+        }
+
+        return listener({
+          pollId: pollId,
           getEntries: function() {
             return entries
           }
