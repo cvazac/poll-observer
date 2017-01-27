@@ -30,3 +30,6 @@ poll entry: 0 poll http://mysite.com/data.json?reqIndex=2
 .... and even later, maybe ...
 poll entry: 0 poll http://mysite.com/data.json?reqIndex=3
 ```
+
+## License
+This work is licensed under the [MIT license](http://en.wikipedia.org/wiki/MIT_License).
